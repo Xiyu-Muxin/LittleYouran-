@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>LittleYouran</title>
+    <style>
+        #bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('LittleYouran.png') no-repeat center center;
+            background-size: cover;
+            z-index: -2;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+
+        html, body {
+            height: 100%; margin: 0; padding: 0;
+            background: transparent !important;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        .app {
+            display: flex; flex-direction: column;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            position: relative; z-index: 1;
+            box-sizing: border-box;
+        }
+
+        .top-container { padding: 12px 16px 6px; }
+        .top {
+            height: 48px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 18px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .top h1 { font-size: 16px; font-weight: 700; color: #60a5fa; margin: 0; }
+        #status { font-size: 11px; color: #cbd5e1; }
+
+        .main { flex: 1; overflow-y: auto; padding: 12px 16px 120px; -webkit-overflow-scrolling: touch; }
+        .page { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px; padding: 18px; margin-bottom: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .card h2 {
+            font-size: 14px; color: #60a5fa; margin-bottom: 12px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card h2 .title-text { display: flex; align-items: center; gap: 6px; }
+
+        .toggle-btn {
+            font-size: 12px; color: #fff; cursor: pointer;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 2px 6px; transition: 0.2s;
+        }
+        .toggle-btn:hover { background: rgba(255,255,255,0.2); }
+
+        .example {
+            background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 8px 12px;
+            font-family: monospace; font-size: 11px; color: #94a3b8;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.05);
+            word-break: break-all;
+        }
+        .example span { flex: 1; margin-right: 8px; }
+        .example button { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: bold; white-space: nowrap; }
+
+        .input {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff; border-radius: 10px; padding: 10px; width: 100%; font-size: 12px; outline: none;
+            margin-bottom: 4px; box-sizing: border-box;
+        }
+
+        .btn { background: #3b82f6; color: #fff; border: none; border-radius: 10px; padding: 10px; width: 100%; font-weight: 600; margin-top: 8px; }
+
+        .rule-container { margin-top: 12px; }
+        .fixed-zone { display: block; }
+        .expand-zone { display: none; }
+
+        .rule-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-top: 6px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .rule-item span {
+            font-size: 11px;
+            color: #cbd5e1;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            white-space: normal;
+            line-height: 1.4;
+            text-align: left;
+            min-width: 0;
+        }
+        .del-btn {
+            color: #f87171;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 14px;
+            margin-left: 10px;
+            white-space: nowrap;
+        }
+
+        .log-box {
+            background: rgba(0, 0, 0, 0.4); color: #94a3b8; padding: 14px;
+            border-radius: 14px; height: 280px; overflow-y: auto;
+            font-family: monospace; font-size: 11px; border: 1px solid rgba(255, 255, 255, 0.08);
+            line-height: 1.4;
+        }
+
+        .nav-container { position: fixed; bottom: 20px; width: 100%; padding: 0 20px; box-sizing: border-box; z-index: 100; }
+        .nav {
+            height: 54px; display: flex; justify-content: space-around; align-items: center;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 27px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 10px; cursor: pointer; }
+        .nav-item div:first-child { font-size: 18px; }
+        .nav-item.active { color: #60a5fa; transform: translateY(-2px); transition: 0.2s; }
+
+        ::-webkit-scrollbar { width: 0; }
+    </style>
+</head>
+<body>
+    <div id="bg"></div>
+    <div class="app">
+        <div class="top-container">
+            <div class="top"><h1>🐟 LittleYouran</h1><div id="status">就绪</div></div>
+        </div>
+
+        <div class="main" id="main-content">
+            <div id="page-config" class="page">
+                <!-- 1. 镜像挂载 -->
+                <div class="card">
+                    <h2>
+                        <span class="title-text">🔘 镜像挂载</span>
+                        <span class="toggle-btn" id="btn-mount" onclick="toggleList('mount')">▼</span>
+                    </h2>
+                    <div class="example"><span id="ex1">mount=/sdcard/Download+/sdcard/Mirror</span><button onclick="copyEx('ex1','in1')">复制</button></div>
+                    <textarea id="in1" class="input" rows="2" placeholder="输入规则..."></textarea>
+                    <button class="btn" onclick="saveSingle('in1')">保存并重启</button>
+                    <div class="rule-container">
+                        <div class="fixed-zone" id="fixed-mount"></div>
+                        <div class="expand-zone" id="expand-mount"></div>
+                    </div>
+                </div>
+
+                <!-- 2. 整体搬运 -->
+                <div class="card">
+                    <h2>
+                        <span class="title-text">📦 整体搬运</span>
+                        <span class="toggle-btn" id="btn-simple" onclick="toggleList('simple')">▼</span>
+                    </h2>
+                    <div class="example"><span id="ex2">/sdcard/Download+/sdcard/a</span><button onclick="copyEx('ex2','in2')">复制</button></div>
+                    <textarea id="in2" class="input" rows="2" placeholder="输入规则..."></textarea>
+                    <button class="btn" onclick="saveSingle('in2')">保存并重启</button>
+                    <div class="rule-container">
+                        <div class="fixed-zone" id="fixed-simple"></div>
+                        <div class="expand-zone" id="expand-simple"></div>
+                    </div>
+                </div>
+
+                <!-- 3. 多源合一 -->
+                <div class="card">
+                    <h2>
+                        <span class="title-text">📁 多源合一</span>
+                        <span class="toggle-btn" id="btn-multi" onclick="toggleList('multi')">▼</span>
+                    </h2>
+                    <div class="example"><span id="ex3">/sdcard/A&&/sdcard/B+/sdcard/c</span><button onclick="copyEx('ex3','in3')">复制</button></div>
+                    <textarea id="in3" class="input" rows="2" placeholder="输入规则..."></textarea>
+                    <button class="btn" onclick="saveSingle('in3')">保存并重启</button>
+                    <div class="rule-container">
+                        <div class="fixed-zone" id="fixed-multi"></div>
+                        <div class="expand-zone" id="expand-multi"></div>
+                    </div>
+                </div>
+
+                <!-- 4. 格式筛选 -->
+                <div class="card">
+                    <h2>
+                        <span class="title-text">🎯 格式筛选</span>
+                        <span class="toggle-btn" id="btn-filter" onclick="toggleList('filter')">▼</span>
+                    </h2>
+                    <div class="example"><span id="ex4">/sdcard/Download+*.zip+/sdcard/zip</span><button onclick="copyEx('ex4','in4')">复制</button></div>
+                    <textarea id="in4" class="input" rows="2" placeholder="输入规则..."></textarea>
+                    <button class="btn" onclick="saveSingle('in4')">保存并重启</button>
+                    <div class="rule-container">
+                        <div class="fixed-zone" id="fixed-filter"></div>
+                        <div class="expand-zone" id="expand-filter"></div>
+                    </div>
+                </div>
+
+                <!-- 5. 多源 + 格式筛选 -->
+                <div class="card">
+                    <h2>
+                        <span class="title-text">🚀 多源+筛选</span>
+                        <span class="toggle-btn" id="btn-multiFilter" onclick="toggleList('multiFilter')">▼</span>
+                    </h2>
+                    <div class="example"><span id="ex5">/sdcard/A&&/sdcard/B+*.mp4+/sdcard/Video</span><button onclick="copyEx('ex5','in5')">复制</button></div>
+                    <textarea id="in5" class="input" rows="2" placeholder="输入规则..."></textarea>
+                    <button class="btn" onclick="saveSingle('in5')">保存并重启</button>
+                    <div class="rule-container">
+                        <div class="fixed-zone" id="fixed-multiFilter"></div>
+                        <div class="expand-zone" id="expand-multiFilter"></div>
+                    </div>
+                </div>
+
+                <!-- 6. 多格式分类 (新增) -->
+                <div class="card">
+                    <h2>
+                        <span class="title-text">🧹 多格式分类</span>
+                        <span class="toggle-btn" id="btn-smartCategory" onclick="toggleList('smartCategory')">▼</span>
+                    </h2>
+                    <div class="example"><span id="ex6">/sdcard/Download+*.mp4,*.zip,*.jpg+/sdcard/MyMedia</span><button onclick="copyEx('ex6','in6')">复制</button></div>
+                    <textarea id="in6" class="input" rows="2" placeholder="输入规则..."></textarea>
+                    <button class="btn" onclick="saveSingle('in6')">保存并重启</button>
+                    <div class="rule-container">
+                        <div class="fixed-zone" id="fixed-smartCategory"></div>
+                        <div class="expand-zone" id="expand-smartCategory"></div>
+                    </div>
+                </div>
+
+                <!-- 7. 精准分流路由 (新增) -->
+                <div class="card">
+                    <h2>
+                        <span class="title-text">🗺️ 精准分流路由</span>
+                        <span class="toggle-btn" id="btn-routing" onclick="toggleList('routing')">▼</span>
+                    </h2>
+                    <div class="example"><span id="ex7">/sdcard/Download+*.mp4:/sdcard/1mp4,*.zip:/sdcard/1zzip+/sdcard/Others</span><button onclick="copyEx('ex7','in7')">复制</button></div>
+                    <textarea id="in7" class="input" rows="2" placeholder="输入规则..."></textarea>
+                    <button class="btn" onclick="saveSingle('in7')">保存并重启</button>
+                    <div class="rule-container">
+                        <div class="fixed-zone" id="fixed-routing"></div>
+                        <div class="expand-zone" id="expand-routing"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-logs" class="page" style="display:none">
+                <div class="card">
+                    <h2>📜 运行日志</h2>
+                    <div id="logBox" class="log-box">加载中...</div>
+                    <button class="btn" style="background: rgba(255,255,255,0.1);" id="refresh-log">刷新日志</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-container" id="nav-wrapper">
+            <div class="nav">
+                <div class="nav-item active" onclick="showPage('config',this)"><div>⚙️</div><div>配置</div></div>
+                <div class="nav-item" onclick="showPage('logs',this)"><div>📜</div><div>日志</div></div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
