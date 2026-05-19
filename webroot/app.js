@@ -149,10 +149,11 @@ function logs() {
 function clearLogs(){
     status('清理中...');
     //使用 echo 覆盖空字符到日志文件
-    exec('echo"">"' + log +'"',function(e, o) {
+    exec('sh' + svc, function(e, o){
         if(e===0){
-            status('日志已清空');
-            logs(); //清空后重新读取日志框，使其变空白
+            status('日志已清空并重启服务');
+            //等待1秒，等新进程启动并生成初始日志后，再刷新日志框
+            setTimeout(logs, 1000);
         }else{
             status('清理失败', true);
         }
