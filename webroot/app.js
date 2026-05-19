@@ -145,6 +145,20 @@ function logs() {
     });
 }
 
+//新增日志清理
+function clearLogs(){
+    status('清理中...');
+    //使用 echo 覆盖空字符到日志文件
+    exec('echo"">"' + log +'"',function(e, o) {
+        if(e===0){
+            status('日志已清空');
+            logs(); //清空后重新读取日志框，使其变空白
+        }else{
+            status('清理失败', true);
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     status('检测桥接...');
     exec('echo ok', function(e, o) {
@@ -153,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadAll();
             logs();
             document.getElementById('refresh-log').onclick = logs;
+            document.getElementById('clear-log').onclick = clearLogs;  //新增日志清理功能，绑定点击事件
         } else {
             status('桥接不可用', true);
         }
