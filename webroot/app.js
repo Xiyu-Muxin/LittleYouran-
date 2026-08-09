@@ -1,188 +1,231 @@
-var cfg = "/data/adb/modules/LittleYouran/config/LittleYouran.txt";
-var log = "/data/adb/modules/LittleYouran/log.txt";
-var svc = "/data/adb/modules/LittleYouran/service.sh";
+(function() {
+    'use strict';
 
-function exec(cmd, cb) {
-    var id = "ly_" + Date.now();
-    var timer = setTimeout(function() { delete window[id]; cb(1, '', '超时'); }, 5000);
-    window[id] = function(e, o, er) { clearTimeout(timer); delete window[id]; cb(e, o, er); };
-    try { ksu.exec(cmd, '{}', id); } catch(e) { clearTimeout(timer); cb(1, '', e.message); }
-}
+    var MOD = '/data/adb/modules/LittleYouran';
+    var CFG = MOD + '/config/LittleYouran.txt';
+    var LOG = MOD + '/log.txt';
+    var SVC = MOD + '/service.sh';
 
-function status(t, e) {
-    var el = document.getElementById('status');
-    if(el) { el.textContent = t; el.style.color = e ? '#fca5a5' : '#60a5fa'; }
-}
-
-function toggleList(type) {
-    var el = document.getElementById('expand-' + type);
-    var btn = document.getElementById('btn-' + type);
-    if(!el) return;
-
-    if(el.style.display === 'block') {
-        el.style.display = 'none';
-        if(btn) btn.textContent = '▼';
-    } else {
-        el.style.display = 'block';
-        if(btn) btn.textContent = '▲';
-    }
-}
-
-function loadAll() {
-    status('加载中...');
-    exec('cat "' + cfg + '"', function(e, o) {
-        if(e === 0 && o) {
-            var lines = o.split('\n').filter(function(l) { return l.trim() && l[0] !== '#'; });
-            // 新增两个分类: smartCategory (多格式分类), routing (精准分流路由)
-            var d = { mount:[], simple:[], multi:[], filter:[], multiFilter:[], smartCategory:[], routing:[] };
-
-            lines.forEach(function(l) {
-                if(l.startsWith('mount=')) {
-                    d.mount.push(l);
-                }
-                else if (l.indexOf(':') !== -1) {
-                    // 7. 精准分流路由 - 包含 `格式:目的地` 映射
-                    d.routing.push(l);
-                }
-                else if ((l.match(/,/g)||[]).length >= 1) {
-                    // 6. 多格式分类 - 包含逗号分隔的多个格式
-                    d.smartCategory.push(l);
-                }
-                else {
-                    var plusCount = (l.match(/\+/g)||[]).length;
-                    var hasAnd = l.indexOf('&&') !== -1;
-
-                    if (plusCount >= 2) {
-                        if (hasAnd) { d.multiFilter.push(l); } else { d.filter.push(l); }
-                    }
-                    else if (hasAnd) {
-                        d.multi.push(l);
-                    }
-                    else {
-                        d.simple.push(l);
-                    }
-                }
-            });
-
-            render('mount', d.mount);
-            render('simple', d.simple);
-            render('multi', d.multi);
-            render('filter', d.filter);
-            render('multiFilter', d.multiFilter);
-            render('smartCategory', d.smartCategory);
-            render('routing', d.routing);
-            status('就绪');
-        } else { status('读取失败', true); }
-    });
-}
-
-function render(type, items) {
-    var fixedEl = document.getElementById('fixed-' + type);
-    var expandEl = document.getElementById('expand-' + type);
-    var btn = document.getElementById('btn-' + type);
-    if(!fixedEl || !expandEl) return;
-
-    fixedEl.innerHTML = '';
-    expandEl.innerHTML = '';
-
-    items.forEach(function(r, index) {
-        // 对单引号进行转义，防止 onclick 中的字符串断裂
-        var escaped = r.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        var html = '<div class="rule-item"><span>' + r + '</span><span class="del-btn" onclick="delRule(\'' + escaped + '\')">✕</span></div>';
-        if(index < 2) {
-            fixedEl.innerHTML += html;
-        } else {
-            expandEl.innerHTML += html;
-        }
-    });
-
-    if (items.length <= 2) {
-        if(btn) btn.style.display = 'none';
-        expandEl.style.display = 'none';
-    } else {
-        if(btn) btn.style.display = 'block';
-    }
-}
-
-function saveInput(id) {
-    var v = document.getElementById(id).value.trim();
-    if(!v) return;
-    status('检查中...');
-    exec('cat "' + cfg + '"', function(e, o) {
-        if(o && o.indexOf(v) !== -1) { status('已存在', true); return; }
-        status('写入中...');
-        var esc = v.replace(/'/g, "'\\''");
-        exec("echo '" + esc + "' >> " + cfg, function(e) {
-            if(e === 0) {
-                status('重启中...');
-                exec('sh ' + svc, function(e) {});
-                loadAll();
-                status('🚀 成功');
-                document.getElementById(id).value = '';
-            } else { status('写入失败', true); }
+    function exec(cmd) {
+        return new Promise(function(resolve, reject) {
+            var id = 'ly_' + Date.now();
+            var timer = setTimeout(function() {
+                delete window[id];
+                reject(new Error('超时'));
+            }, 5000);
+            window[id] = function(e, o, er) {
+                clearTimeout(timer);
+                delete window[id];
+                e === 0 ? resolve(o) : reject(new Error(er || '执行失败'));
+            };
+            try {
+                ksu.exec(cmd, '{}', id);
+            } catch(e) {
+                clearTimeout(timer);
+                delete window[id];
+                reject(new Error(e.message));
+            }
         });
-    });
-}
+    }
 
-function delRule(r) {
-    status('删除中...');
-    exec('cat "' + cfg + '"', function(e, o) {
-        if(e !== 0) { status('读取失败', true); return; }
-        var newContent = o.split('\n').filter(function(l) { return l.trim() !== r; }).join('\n');
-        var tmp = '/data/local/tmp/ly_del_tmp';
-        var esc = newContent.replace(/'/g, "'\\''");
-        exec("echo '" + esc + "' > " + tmp + " && mv " + tmp + " " + cfg, function(e2) {
-            exec('sh ' + svc, function(e3) {});
+    function shellEscape(s) {
+        return "'" + s.replace(/'/g, "'\\''") + "'";
+    }
+
+    function htmlEncode(s) {
+        return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function appendLine(path, line) {
+        return exec("printf '%s\\n' " + shellEscape(line) + " >> " + path);
+    }
+
+    function writeFile(path, content) {
+        var tmp = '/data/local/tmp/.ly_' + Date.now();
+        var lines = content.split('\n');
+        if (lines.length === 0) return exec('true');
+        var cmds = [];
+        for (var i = 0; i < lines.length; i++) {
+            var op = i === 0 ? '>' : '>>';
+            var nl = i < lines.length - 1 ? '\\n' : '';
+            cmds.push("printf '%s" + nl + "' " + shellEscape(lines[i]) + " " + op + " " + tmp);
+        }
+        cmds.push("mv -f " + tmp + " " + path);
+        return exec(cmds.join(' && '));
+    }
+
+    function status(t, err) {
+        var el = document.getElementById('status');
+        if (el) { el.textContent = t; el.style.color = err ? '#fca5a5' : '#60a5fa'; }
+    }
+
+    window.toggleList = function(type) {
+        var el = document.getElementById('expand-' + type);
+        var btn = document.getElementById('btn-' + type);
+        if (!el) return;
+        var open = el.style.display === 'block';
+        el.style.display = open ? 'none' : 'block';
+        if (btn) btn.textContent = open ? '▼' : '▲';
+    };
+
+    function classify(l) {
+        if (l.startsWith('mount=')) return 'mount';
+        var afterPlus = l.substring(l.indexOf('+') + 1);
+        var hasAnd = l.indexOf('&&') !== -1;
+        if (afterPlus.indexOf('*') !== -1) {
+            if (/\*\.\w+:/.test(afterPlus)) return 'routing';
+            if (!hasAnd && /\*\.\w+,/.test(afterPlus)) return 'smartCategory';
+        }
+        var pc = (l.match(/\+/g) || []).length;
+        if (pc >= 2) return hasAnd ? 'multiFilter' : 'filter';
+        if (hasAnd) return 'multi';
+        return 'simple';
+    }
+
+    function loadAll() {
+        status('加载中...');
+        exec('cat ' + shellEscape(CFG)).then(function(o) {
+            var d = { mount:[], simple:[], multi:[], filter:[], multiFilter:[], smartCategory:[], routing:[] };
+            o.split('\n').filter(function(l) { return l.trim() && l[0] !== '#'; }).forEach(function(l) {
+                d[classify(l)].push(l);
+            });
+            ['mount','simple','multi','filter','multiFilter','smartCategory','routing'].forEach(function(t) {
+                render(t, d[t]);
+            });
+            status('就绪');
+        }).catch(function() { status('读取失败', true); });
+    }
+
+    function render(type, items) {
+        var fixedEl = document.getElementById('fixed-' + type);
+        var expandEl = document.getElementById('expand-' + type);
+        var btn = document.getElementById('btn-' + type);
+        if (!fixedEl || !expandEl) return;
+
+        var fh = '', eh = '';
+        items.forEach(function(r, i) {
+            var h = '<div class="rule-item"><span>' + htmlEncode(r) + '</span><span class="del-btn" data-rule="' + htmlEncode(r) + '">✕</span></div>';
+            if (i < 2) { fh += h; } else { eh += h; }
+        });
+        fixedEl.innerHTML = fh;
+        expandEl.innerHTML = eh;
+
+        if (items.length <= 2) {
+            if (btn) btn.style.display = 'none';
+            expandEl.style.display = 'none';
+        } else {
+            if (btn) btn.style.display = 'block';
+        }
+    }
+
+    function saveInput(id) {
+        var v = document.getElementById(id).value.trim();
+        if (!v) return;
+        status('检查中...');
+        exec('cat ' + shellEscape(CFG)).then(function(o) {
+            if (o.split('\n').some(function(l) { return l.trim() === v; })) {
+                throw new Error('已存在');
+            }
+            status('写入中...');
+            return appendLine(CFG, v);
+        }).then(function() {
+            status('重启中...');
+            return exec('sh ' + shellEscape(SVC));
+        }).then(function() {
+            loadAll();
+            status('就绪');
+            document.getElementById(id).value = '';
+        }).catch(function(e) {
+            if (e.message !== '已存在') status('操作失败', true);
+        });
+    }
+
+    window._del = function(r) {
+        status('删除中...');
+        exec('cat ' + shellEscape(CFG)).then(function(o) {
+            var nc = o.split('\n').filter(function(l) { return l.trim() !== r; }).join('\n');
+            return writeFile(CFG, nc);
+        }).then(function() {
+            return exec('sh ' + shellEscape(SVC));
+        }).then(function() {
             loadAll();
             status('已删除');
+        }).catch(function() { status('删除失败', true); });
+    };
+
+    window.copyEx = function(from, to) {
+        var el = document.getElementById(to);
+        if (el) el.value = document.getElementById(from).textContent;
+    };
+
+    window.saveSingle = function(id) { saveInput(id); };
+
+    window.showPage = function(p, el) {
+        document.querySelectorAll('.page').forEach(function(pp) { pp.style.display = 'none'; });
+        document.getElementById('page-' + p).style.display = 'block';
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+        el.classList.add('active');
+        if (p === 'logs') refreshLogs();
+    };
+
+    function refreshLogs() {
+        exec('tail -20 ' + shellEscape(LOG)).then(function(o) {
+            document.getElementById('logBox').textContent = o || '暂无';
+        }).catch(function() {
+            document.getElementById('logBox').textContent = '读取失败';
         });
-    });
-}
+    }
 
-function logs() {
-    exec("tail -20 '" + log + "'", function(e, o) {
-        document.getElementById('logBox').textContent = o || '暂无';
-    });
-}
+    var RULE_TYPES = [
+        { id: 'mount',        icon: '🔘', title: '镜像挂载',       example: 'mount=/sdcard/Download+/sdcard/Mirror' },
+        { id: 'simple',       icon: '📦', title: '整体搬运',       example: '/sdcard/Download+/sdcard/a' },
+        { id: 'multi',        icon: '📁', title: '多源合一',       example: '/sdcard/A&&/sdcard/B+/sdcard/c' },
+        { id: 'filter',       icon: '🎯', title: '格式筛选',       example: '/sdcard/Download+*.zip+/sdcard/zip' },
+        { id: 'multiFilter',  icon: '🚀', title: '多源+筛选',      example: '/sdcard/A&&/sdcard/B+*.mp4+/sdcard/Video' },
+        { id: 'smartCategory',icon: '🧹', title: '多格式分类',     example: '/sdcard/Download+*.mp4,*.zip,*.jpg+/sdcard/MyMedia' },
+        { id: 'routing',      icon: '🗺️', title: '精准分流路由',   example: '/sdcard/Download+*.mp4:/sdcard/1mp4,*.zip:/sdcard/1zzip+/sdcard/Others' }
+    ];
 
-//新增日志清理
-function clearLogs(){
-    status('清理中...');
-    //使用 echo 覆盖空字符到日志文件
-    exec('sh ' + svc, function(e, o){
-        if(e===0){
-            status('日志已清空并重启服务');
-            //等待1秒，等新进程启动并生成初始日志后，再刷新日志框
-            setTimeout(logs, 1000);
-        }else{
-            status('清理失败', true);
+    function buildCards() {
+        var container = document.getElementById('page-config');
+        var html = '';
+        RULE_TYPES.forEach(function(rt, i) {
+            html += '<div class="card">' +
+                '<h2><span class="title-text">' + rt.icon + ' ' + rt.title + '</span>' +
+                '<span class="toggle-btn" id="btn-' + rt.id + '" onclick="toggleList(\'' + rt.id + '\')">▼</span></h2>' +
+                '<div class="example"><span id="ex' + (i + 1) + '">' + rt.example + '</span>' +
+                '<button onclick="copyEx(\'ex' + (i + 1) + '\',\'in' + (i + 1) + '\')">复制</button></div>' +
+                '<textarea id="in' + (i + 1) + '" class="input" rows="2" placeholder="输入规则..."></textarea>' +
+                '<button class="btn" onclick="saveSingle(\'in' + (i + 1) + '\')">保存并重启</button>' +
+                '<div class="rule-container"><div class="fixed-zone" id="fixed-' + rt.id + '"></div>' +
+                '<div class="expand-zone" id="expand-' + rt.id + '"></div></div></div>';
+        });
+        container.innerHTML = html;
+        if (!container._delegateAttached) {
+            container.addEventListener('click', function(e) {
+                var t = e.target;
+                while (t && !t.classList.contains('del-btn')) { t = t.parentElement; }
+                if (t && confirm('确认删除此规则？')) {
+                    var rule = t.getAttribute('data-rule');
+                    if (rule) window._del(rule);
+                }
+            });
+            container._delegateAttached = true;
         }
-    });
-}
+    }
 
-document.addEventListener('DOMContentLoaded', function() {
-    status('检测桥接...');
-    exec('echo ok', function(e, o) {
-        if(e === 0 && o.trim() === 'ok') {
-            status('就绪');
-            loadAll();
-            logs();
-            document.getElementById('refresh-log').onclick = logs;
-            document.getElementById('clear-log').onclick = clearLogs;  //新增日志清理功能，绑定点击事件
-        } else {
-            status('桥接不可用', true);
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        buildCards();
+        status('检测桥接...');
+        exec('echo ok').then(function(o) {
+            if (o.trim() === 'ok') {
+                status('就绪');
+                loadAll();
+                refreshLogs();
+                document.getElementById('refresh-log').onclick = refreshLogs;
+            } else {
+                status('桥接不可用', true);
+            }
+        }).catch(function() { status('桥接不可用', true); });
     });
-});
-
-function copyEx(idFrom, idTo) {
-    var el = document.getElementById(idTo);
-    if(el) el.value = document.getElementById(idFrom).textContent;
-}
-function saveSingle(id) { saveInput(id); }
-function showPage(p, el) {
-    document.querySelectorAll('.page').forEach(function(pp) { pp.style.display = 'none'; });
-    document.getElementById('page-' + p).style.display = 'block';
-    document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-    el.classList.add('active');
-}
+})();

@@ -75,15 +75,15 @@
             word-break: break-all;
         }
         .example span { flex: 1; margin-right: 8px; }
-        .example button { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: bold; white-space: nowrap; }
+        .example button { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: bold; white-space: nowrap; cursor: pointer; }
 
         .input {
             background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15);
             color: #fff; border-radius: 10px; padding: 10px; width: 100%; font-size: 12px; outline: none;
-            margin-bottom: 4px; box-sizing: border-box;
+            margin-bottom: 4px; box-sizing: border-box; resize: none;
         }
 
-        .btn { background: #3b82f6; color: #fff; border: none; border-radius: 10px; padding: 10px; width: 100%; font-weight: 600; margin-top: 8px; }
+        .btn { background: #3b82f6; color: #fff; border: none; border-radius: 10px; padding: 10px; width: 100%; font-weight: 600; margin-top: 8px; cursor: pointer; }
 
         .rule-container { margin-top: 12px; }
         .fixed-zone { display: block; }
@@ -154,110 +154,7 @@
 
         <div class="main" id="main-content">
             <div id="page-config" class="page">
-                <!-- 1. 镜像挂载 -->
-                <div class="card">
-                    <h2>
-                        <span class="title-text">🔘 镜像挂载</span>
-                        <span class="toggle-btn" id="btn-mount" onclick="toggleList('mount')">▼</span>
-                    </h2>
-                    <div class="example"><span id="ex1">mount=/sdcard/Download+/sdcard/Mirror</span><button onclick="copyEx('ex1','in1')">复制</button></div>
-                    <textarea id="in1" class="input" rows="2" placeholder="输入规则..."></textarea>
-                    <button class="btn" onclick="saveSingle('in1')">保存并重启</button>
-                    <div class="rule-container">
-                        <div class="fixed-zone" id="fixed-mount"></div>
-                        <div class="expand-zone" id="expand-mount"></div>
-                    </div>
-                </div>
-
-                <!-- 2. 整体搬运 -->
-                <div class="card">
-                    <h2>
-                        <span class="title-text">📦 整体搬运</span>
-                        <span class="toggle-btn" id="btn-simple" onclick="toggleList('simple')">▼</span>
-                    </h2>
-                    <div class="example"><span id="ex2">/sdcard/Download+/sdcard/a</span><button onclick="copyEx('ex2','in2')">复制</button></div>
-                    <textarea id="in2" class="input" rows="2" placeholder="输入规则..."></textarea>
-                    <button class="btn" onclick="saveSingle('in2')">保存并重启</button>
-                    <div class="rule-container">
-                        <div class="fixed-zone" id="fixed-simple"></div>
-                        <div class="expand-zone" id="expand-simple"></div>
-                    </div>
-                </div>
-
-                <!-- 3. 多源合一 -->
-                <div class="card">
-                    <h2>
-                        <span class="title-text">📁 多源合一</span>
-                        <span class="toggle-btn" id="btn-multi" onclick="toggleList('multi')">▼</span>
-                    </h2>
-                    <div class="example"><span id="ex3">/sdcard/A&&/sdcard/B+/sdcard/c</span><button onclick="copyEx('ex3','in3')">复制</button></div>
-                    <textarea id="in3" class="input" rows="2" placeholder="输入规则..."></textarea>
-                    <button class="btn" onclick="saveSingle('in3')">保存并重启</button>
-                    <div class="rule-container">
-                        <div class="fixed-zone" id="fixed-multi"></div>
-                        <div class="expand-zone" id="expand-multi"></div>
-                    </div>
-                </div>
-
-                <!-- 4. 格式筛选 -->
-                <div class="card">
-                    <h2>
-                        <span class="title-text">🎯 格式筛选</span>
-                        <span class="toggle-btn" id="btn-filter" onclick="toggleList('filter')">▼</span>
-                    </h2>
-                    <div class="example"><span id="ex4">/sdcard/Download+*.zip+/sdcard/zip</span><button onclick="copyEx('ex4','in4')">复制</button></div>
-                    <textarea id="in4" class="input" rows="2" placeholder="输入规则..."></textarea>
-                    <button class="btn" onclick="saveSingle('in4')">保存并重启</button>
-                    <div class="rule-container">
-                        <div class="fixed-zone" id="fixed-filter"></div>
-                        <div class="expand-zone" id="expand-filter"></div>
-                    </div>
-                </div>
-
-                <!-- 5. 多源 + 格式筛选 -->
-                <div class="card">
-                    <h2>
-                        <span class="title-text">🚀 多源+筛选</span>
-                        <span class="toggle-btn" id="btn-multiFilter" onclick="toggleList('multiFilter')">▼</span>
-                    </h2>
-                    <div class="example"><span id="ex5">/sdcard/A&&/sdcard/B+*.mp4+/sdcard/Video</span><button onclick="copyEx('ex5','in5')">复制</button></div>
-                    <textarea id="in5" class="input" rows="2" placeholder="输入规则..."></textarea>
-                    <button class="btn" onclick="saveSingle('in5')">保存并重启</button>
-                    <div class="rule-container">
-                        <div class="fixed-zone" id="fixed-multiFilter"></div>
-                        <div class="expand-zone" id="expand-multiFilter"></div>
-                    </div>
-                </div>
-
-                <!-- 6. 多格式分类 (新增) -->
-                <div class="card">
-                    <h2>
-                        <span class="title-text">🧹 多格式分类</span>
-                        <span class="toggle-btn" id="btn-smartCategory" onclick="toggleList('smartCategory')">▼</span>
-                    </h2>
-                    <div class="example"><span id="ex6">/sdcard/Download+*.mp4,*.zip,*.jpg+/sdcard/MyMedia</span><button onclick="copyEx('ex6','in6')">复制</button></div>
-                    <textarea id="in6" class="input" rows="2" placeholder="输入规则..."></textarea>
-                    <button class="btn" onclick="saveSingle('in6')">保存并重启</button>
-                    <div class="rule-container">
-                        <div class="fixed-zone" id="fixed-smartCategory"></div>
-                        <div class="expand-zone" id="expand-smartCategory"></div>
-                    </div>
-                </div>
-
-                <!-- 7. 精准分流路由 (新增) -->
-                <div class="card">
-                    <h2>
-                        <span class="title-text">🗺️ 精准分流路由</span>
-                        <span class="toggle-btn" id="btn-routing" onclick="toggleList('routing')">▼</span>
-                    </h2>
-                    <div class="example"><span id="ex7">/sdcard/Download+*.mp4:/sdcard/1mp4,*.zip:/sdcard/1zzip+/sdcard/Others</span><button onclick="copyEx('ex7','in7')">复制</button></div>
-                    <textarea id="in7" class="input" rows="2" placeholder="输入规则..."></textarea>
-                    <button class="btn" onclick="saveSingle('in7')">保存并重启</button>
-                    <div class="rule-container">
-                        <div class="fixed-zone" id="fixed-routing"></div>
-                        <div class="expand-zone" id="expand-routing"></div>
-                    </div>
-                </div>
+                <!-- cards generated by app.js -->
             </div>
 
             <div id="page-logs" class="page" style="display:none">
@@ -265,7 +162,6 @@
                     <h2>📜 运行日志</h2>
                     <div id="logBox" class="log-box">加载中...</div>
                     <button class="btn" style="background: rgba(255,255,255,0.1);" id="refresh-log">刷新日志</button>
-                    <button class="btn" style="background: rgba(248,113,113,0.15); color: #fca5a5; margin-top: 8px;" id="clear-log">清空日志</button>
                 </div>
             </div>
         </div>
