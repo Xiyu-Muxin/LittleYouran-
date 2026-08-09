@@ -12,8 +12,8 @@ if [ -f "$BIN" ]; then
     restorecon "$BIN" 2>/dev/null
 fi
 
-# 二进制依赖 libc++_shared.so (std::__ndk1 命名空间, 系统的 libc++.so 不提供);
-# 系统 + apex 都不带 libc++_shared.so, 只能用户自己准备一份放进 bin 目录。
+# 二进制依赖 libc++_shared.so (std::__ndk1 命名空间);
+# 如果/system/lib64 + /apex 都不带 libc++_shared.so, 只能自己准备一份放进 bin 目录。
 # 这里只负责给准备好的 .so 补上权限 + 把模块 bin 加进动态库搜索路径。
 for so in "$MODDIR"/bin/*.so; do
     [ -f "$so" ] || continue
